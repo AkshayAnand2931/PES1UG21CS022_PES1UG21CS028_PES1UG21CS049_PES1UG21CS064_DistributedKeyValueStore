@@ -2,17 +2,26 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"time"
 
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 
+var (
+	client *clientv3.Client
+)
+
 func main() {
 
 	endpoints := []string{"localhost:2379"}
+	duration := 5 * time.Second
 
-	client, err := getClient(endpoints)
+	//Create client for etcd
+	var err error
+	client, err = getClient(endpoints, duration)
 
 	if err != nil {
 		fmt.Println("Failed to create etcd client: ", err)
@@ -21,54 +30,93 @@ func main() {
 
 	defer client.Close()
 
-	//Set a key-value pair
-	key := "example_key"
-	value := "example_value"
+	http.HandleFunc("/set", setHandler)
+	http.HandleFunc("/get", getHandler)
+	http.HandleFunc("/getAll", getAllHandler)
 
-	if err := setValue(client, key, value); err != nil {
-		fmt.Println("Failed to put key-value pairs: ", err)
-		return
-	}
-
-	//Retrieve a value by key
-	if val, err := getValue(client, key); err != nil {
-		fmt.Println("Failed to get value for key: ", err)
-	} else {
-		fmt.Println("Value for key:", val)
-	}
-
-	//Watch for changes
-	watchChanges(client, key)
+	fmt.Println("Server listening on port 8080")
+	http.ListenAndServe(":8080", nil)
 }
 
-func getClient(endpoints []string) (*clientv3.Client, error) {
+type KeyValue struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+func getClient(endpoints []string, duration time.Duration) (*clientv3.Client, error) {
+
+	//Get client for etcd
 	return clientv3.New(clientv3.Config{
 		Endpoints:   endpoints,
-		DialTimeout: 2 * time.Second,
+		DialTimeout: duration,
 	})
 }
 
-func setValue(client *clientv3.Client, key, value string) error {
+func setHandler(w http.ResponseWriter, r *http.Request) {
 
+	var keyvalue KeyValue
+
+	if err := json.NewDecoder(r.Body).Decode(&keyvalue); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	//Set key-value pair
 	ctx := context.TODO()
-	_, err := client.Put(ctx, key, value)
-	return err
+	_, err := client.Put(ctx, keyvalue.Key, keyvalue.Value)
+
+	if err != nil {
+		http.Error(w, "Failed to set key-value pair in etcd", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
-func getValue(client *clientv3.Client, key string) (string, error) {
+func getHandler(w http.ResponseWriter, r *http.Request) {
+
+	key := r.URL.Query().Get("key")
 
 	ctx := context.TODO()
 	resp, err := client.Get(ctx, key)
 
 	if err != nil {
-		return "", err
+		http.Error(w, "Failed to get value for key from etcd", http.StatusInternalServerError)
+		return
 	}
 
 	if len(resp.Kvs) == 0 {
-		return "", fmt.Errorf("Key not found")
+		http.Error(w, "Key not found", http.StatusNotFound)
+		return
 	}
 
-	return string(resp.Kvs[0].Value), nil
+	value := string(resp.Kvs[0].Value)
+	jsonResponse(w, KeyValue{Key: key, Value: value})
+}
+
+func getAllHandler(w http.ResponseWriter, r *http.Request) {
+
+	ctx := context.TODO()
+	resp, err := client.Get(ctx, "", clientv3.WithPrefix())
+
+	if err != nil {
+		http.Error(w, "Failed to get all key-value pairs from etcd", http.StatusInternalServerError)
+		return
+	}
+
+	var keyvalues []KeyValue
+
+	for _, kv := range resp.Kvs {
+		keyvalues = append(keyvalues, KeyValue{Key: string(kv.Key), Value: string(kv.Value)})
+	}
+
+	jsonResponse(w, keyvalues)
+}
+
+func jsonResponse(w http.ResponseWriter, data interface{}) {
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(data)
 }
 
 func watchChanges(client *clientv3.Client, key string) {
