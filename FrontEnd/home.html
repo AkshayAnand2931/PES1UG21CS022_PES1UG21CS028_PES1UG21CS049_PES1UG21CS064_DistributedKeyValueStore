@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KV Store Client</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 2rem;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            margin: 10px;
+            cursor: pointer;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 1rem;
+            display: none;
+        }
+
+        .form-label {
+            margin-bottom: 5px;
+        }
+
+        #key,
+        #value {
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        #response {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 10px;
+            margin-top: 1rem;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>KV Store Client</h1>
+    <div id="buttons">
+        <button id="get">Get Value</button>
+        <button id="set">Set Value</button>
+        <button id="getAll">Get All</button>
+        <button id="delete" disabled>Delete (Not Implemented)</button>
+    </div>
+    <form id="get-form" onsubmit="getValue(event)">
+        <label for="key" class="form-label">Enter Key:</label>
+        <input type="text" id="getKey" required>
+        <button type="submit">Get</button>
+    </form>
+    <form id="set-form">
+        <label for="key" class="form-label">Enter Key:</label>
+        <input type="text" id="setKey" required>
+        <label for="value" class="form-label">Enter Value:</label>
+        <input type="text" id="setValue" required>
+        <button type="submit">Set</button>
+    </form>
+    <pre id="response"></pre>
+
+    <script>
+        const buttons = document.getElementById('buttons');
+        const getForm = document.getElementById('get-form');
+        const setForm = document.getElementById('set-form');
+        const responseEl = document.getElementById('response');
+
+        buttons.addEventListener('click', (event) => {
+            const target = event.target;
+            if (target.id === 'get') {
+                getForm.style.display = 'block'; // Show get form for "Get"
+                setForm.reset(); // Reset form fields on each click
+                responseEl.textContent = ''; // Clear previous response
+            } else if (target.id === 'set') {
+                setForm.style.display = 'block'; // Show set form for "Set"
+                setForm.reset(); // Reset form fields on each click
+                responseEl.textContent = ''; // Clear previous response
+            } else if (target.id === 'getAll') {
+                getForm.style.display = 'none'; // Hide forms for "Get All"
+                setForm.reset(); // Reset form fields on each click
+                responseEl.textContent = ''; // Clear previous response
+                // Make GET request to get all key-value pairs
+                fetch('http://localhost:8080/getAll')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (Array.isArray(data)) {
+                            // Handle successful response with array of key-value pairs
+                            responseEl.textContent = JSON.stringify(data, null, 2);
+                        } else {
+                            responseEl.textContent = 'Unexpected response format.';
+                        }
+                    })
+                    .catch(error => {
+                        responseEl.textContent = `Error: ${error.message}`;
+                    });
+            }
+        });
+
+        async function getValue(event) {
+            event.preventDefault();
+            const key = document.getElementById('getKey').value;
+            try {
+                const response = await fetch(`http://localhost:8080/get?key=${key}`);
+                const data = await response.json();
+                responseEl.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                responseEl.textContent = `Error: ${error.message}`;
+            }
+        }
+        document.getElementById('set-form').addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent form submission
+
+            const formData = {
+                key: document.getElementById('setKey').value,
+                value: document.getElementById('setValue').value
+            };
+
+            fetch('http://localhost:8080/set', {
+                headers: {'Content-Type': 'application/json'},
+                method: 'POST',
+                body: JSON.stringify(formData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok: ' + response.statusText);
+                }
+                return response.text();
+            })
+            .then(data => {
+                console.log('Response from server:', data);
+                alert('Response from server: ' + data);
+            })
+            .catch(error => {
+                console.error('There was a problem with the fetch operation:', error);
+                alert('Error: ' + error.message);
+            });
+        });
+
+    </script>
+</body>
+
+</html>

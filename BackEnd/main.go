@@ -15,11 +15,10 @@ var (
 )
 
 func main() {
-
-	endpoints := []string{"localhost:2379"}
+	endpoints := []string{"127.0.0.1:2379"} // ETCD server endpoints
 	duration := 5 * time.Second
 
-	//Create client for etcd
+	// Create client for etcd
 	var err error
 	client, err = getClient(endpoints, duration)
 
@@ -30,12 +29,33 @@ func main() {
 
 	defer client.Close()
 
+	// Set up HTTP handlers
 	http.HandleFunc("/set", setHandler)
 	http.HandleFunc("/get", getHandler)
 	http.HandleFunc("/getAll", getAllHandler)
 
-	fmt.Println("Server listening on port 8080")
-	http.ListenAndServe(":8080", nil)
+	// Enable CORS middleware
+	handler := enableCORS(http.DefaultServeMux)
+
+	fmt.Println("Server listening on http://127.0.0.1:8080")
+	http.ListenAndServe("127.0.0.1:8080", handler)
+}
+
+// Middleware function to enable CORS
+func enableCORS(handler http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With")
+		w.Header().Set("Access-Control-Allow-Credentials", "true")
+
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		handler.ServeHTTP(w, r)
+	})
 }
 
 type KeyValue struct {
@@ -44,8 +64,7 @@ type KeyValue struct {
 }
 
 func getClient(endpoints []string, duration time.Duration) (*clientv3.Client, error) {
-
-	//Get client for etcd
+	// Get client for etcd
 	return clientv3.New(clientv3.Config{
 		Endpoints:   endpoints,
 		DialTimeout: duration,
@@ -53,7 +72,6 @@ func getClient(endpoints []string, duration time.Duration) (*clientv3.Client, er
 }
 
 func setHandler(w http.ResponseWriter, r *http.Request) {
-
 	var keyvalue KeyValue
 
 	if err := json.NewDecoder(r.Body).Decode(&keyvalue); err != nil {
@@ -61,7 +79,7 @@ func setHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//Set key-value pair
+	// Set key-value pair
 	ctx := context.TODO()
 	_, err := client.Put(ctx, keyvalue.Key, keyvalue.Value)
 
@@ -74,7 +92,6 @@ func setHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getHandler(w http.ResponseWriter, r *http.Request) {
-
 	key := r.URL.Query().Get("key")
 
 	ctx := context.TODO()
@@ -95,7 +112,6 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getAllHandler(w http.ResponseWriter, r *http.Request) {
-
 	ctx := context.TODO()
 	resp, err := client.Get(ctx, "", clientv3.WithPrefix())
 
@@ -114,20 +130,6 @@ func getAllHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func jsonResponse(w http.ResponseWriter, data interface{}) {
-
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(data)
-}
-
-func watchChanges(client *clientv3.Client, key string) {
-
-	ctx := context.TODO()
-	watcher := client.Watch(ctx, key, clientv3.WithPrefix())
-
-	for wresp := range watcher {
-
-		for _, event := range wresp.Events {
-			fmt.Printf("Event recieved! Type: %s, Key: %s, Value: %s \n", event.Type, event.Kv.Key, event.Kv.Value)
-		}
-	}
 }
