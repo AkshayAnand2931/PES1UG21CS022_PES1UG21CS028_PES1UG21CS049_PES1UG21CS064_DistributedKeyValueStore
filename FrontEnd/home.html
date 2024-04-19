@@ -57,12 +57,17 @@
         <button id="get">Get Value</button>
         <button id="set">Set Value</button>
         <button id="getAll">Get All</button>
-        <button id="delete" disabled>Delete (Not Implemented)</button>
+        <button id="delete">Delete</button>
     </div>
     <form id="get-form" onsubmit="getValue(event)">
         <label for="key" class="form-label">Enter Key:</label>
         <input type="text" id="getKey" required>
         <button type="submit">Get</button>
+    </form>
+    <form id="del-form" onsubmit="deleteValue(event)">
+        <label for="key" class="form-label">Enter Key to Delete:</label>
+        <input type="text" id="delKey" required>
+        <button type="submit">Delete</button>
     </form>
     <form id="set-form">
         <label for="key" class="form-label">Enter Key:</label>
@@ -77,16 +82,19 @@
         const buttons = document.getElementById('buttons');
         const getForm = document.getElementById('get-form');
         const setForm = document.getElementById('set-form');
+        const delForm = document.getElementById('del-form');
         const responseEl = document.getElementById('response');
 
         buttons.addEventListener('click', (event) => {
             const target = event.target;
             if (target.id === 'get') {
+                setForm.style.display = 'none';
                 getForm.style.display = 'block'; // Show get form for "Get"
                 setForm.reset(); // Reset form fields on each click
                 responseEl.textContent = ''; // Clear previous response
             } else if (target.id === 'set') {
                 setForm.style.display = 'block'; // Show set form for "Set"
+                getForm.style.display = 'none';
                 setForm.reset(); // Reset form fields on each click
                 responseEl.textContent = ''; // Clear previous response
             } else if (target.id === 'getAll') {
@@ -107,8 +115,30 @@
                     .catch(error => {
                         responseEl.textContent = `Error: ${error.message}`;
                     });
+            } else if (target.id === 'delete') {
+                delForm.style.display = 'block'; // Show delete form
+                setForm.style.display = 'none'; // Hide set form
+                getForm.style.display = 'none'; // Hide get form
+                responseEl.textContent = ''; // Clear previous response
             }
         });
+
+        async function deleteValue(event) {
+            event.preventDefault();
+            const key = document.getElementById('delKey').value;
+            try {
+                const response = await fetch(`http://localhost:8080/delete?key=${key}`, {
+                    method: 'DELETE'
+                });
+                if (response.ok) {
+                    responseEl.textContent = `Key '${key}' deleted successfully`;
+                } else {
+                    responseEl.textContent = `Failed to delete key '${key}'`;
+                }
+            } catch (error) {
+                responseEl.textContent = `Error: ${error.message}`;
+            }
+        }
 
         async function getValue(event) {
             event.preventDefault();
@@ -121,6 +151,7 @@
                 responseEl.textContent = `Error: ${error.message}`;
             }
         }
+
         document.getElementById('set-form').addEventListener('submit', function(event) {
             event.preventDefault(); // Prevent form submission
 

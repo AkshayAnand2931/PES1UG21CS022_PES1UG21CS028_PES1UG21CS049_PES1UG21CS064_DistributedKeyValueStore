@@ -33,6 +33,7 @@ func main() {
 	http.HandleFunc("/set", setHandler)
 	http.HandleFunc("/get", getHandler)
 	http.HandleFunc("/getAll", getAllHandler)
+	http.HandleFunc("/delete", deleteHandler)
 
 	// Enable CORS middleware
 	handler := enableCORS(http.DefaultServeMux)
@@ -69,6 +70,30 @@ func getClient(endpoints []string, duration time.Duration) (*clientv3.Client, er
 		Endpoints:   endpoints,
 		DialTimeout: duration,
 	})
+}
+
+func deleteHandler(w http.ResponseWriter, r *http.Request) {
+	// Parse the key from the request URL
+	key := r.URL.Query().Get("key")
+
+	// Check if the key is empty
+	if key == "" {
+		http.Error(w, "Key is required", http.StatusBadRequest)
+		return
+	}
+
+	// Delete the key from the KV store
+	ctx := context.TODO()
+	_, err := client.Delete(ctx, key)
+
+	if err != nil {
+		http.Error(w, "Failed to delete key from etcd", http.StatusInternalServerError)
+		return
+	}
+
+	response := fmt.Sprintf("Key '%s' deleted", key)
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(response))
 }
 
 func setHandler(w http.ResponseWriter, r *http.Request) {
