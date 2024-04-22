@@ -97,8 +97,9 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 func setHandler(w http.ResponseWriter, r *http.Request) {
 	var keyvalue KeyValue
-
-	if err := json.NewDecoder(r.Body).Decode(&keyvalue); err != nil {
+	d := json.NewDecoder(r.Body)
+	d.DisallowUnknownFields()
+	if err := d.Decode(&keyvalue); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
