@@ -72,6 +72,10 @@ func getClient(endpoints []string, duration time.Duration) (*clientv3.Client, er
 }
 
 func deleteHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+        http.Error(w, "Only DELETE is allowed", http.StatusMethodNotAllowed)
+        return
+    }
 	// Parse the key from the request URL
 	key := r.URL.Query().Get("key")
 
@@ -96,6 +100,11 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func setHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+        http.Error(w, "Only POST is allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
 	var keyvalue KeyValue
 	d := json.NewDecoder(r.Body)
 	d.DisallowUnknownFields()
@@ -117,6 +126,11 @@ func setHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+        http.Error(w, "Only GET is allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
 	key := r.URL.Query().Get("key")
 
 	ctx := context.TODO()
@@ -137,6 +151,11 @@ func getHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getAllHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+        http.Error(w, "Only GET is allowed", http.StatusMethodNotAllowed)
+        return
+    }
+	
 	ctx := context.TODO()
 	resp, err := client.Get(ctx, "", clientv3.WithPrefix())
 

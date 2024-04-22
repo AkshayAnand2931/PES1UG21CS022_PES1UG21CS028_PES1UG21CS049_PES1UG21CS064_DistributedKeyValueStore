@@ -51,3 +51,33 @@ func TestSetAndGet(t *testing.T){
 		t.Fatalf("Not OK error on setAndGet")
 	}
 }
+
+func TestDelete(t *testing.T){
+	jsonBod, _ := json.Marshal(map[string]string{
+		"key": "onlyDel",
+		"value": "TheValueSet",
+	})
+	reqBody := bytes.NewBuffer(jsonBod)
+	res, err := http.Post(REQUEST_URL+"set", "application/json", reqBody)
+	if res.StatusCode != 200 || err != nil{
+		t.Fatalf("Value not set")
+	}
+
+	client := &http.Client{}
+	req, err1 := http.NewRequest("DELETE", REQUEST_URL+"delete?key=onlyDel", nil)
+	if err1 != nil{
+		t.Fatalf("Could not send request")
+	}
+	res, err = client.Do(req)
+	if res.StatusCode != 200 || err != nil{
+		t.Fatalf("Delete gave error")
+	}
+	defer res.Body.Close()
+}
+
+func TestGetAll(t *testing.T){
+	res, _ := http.Get(REQUEST_URL+"getAll")
+	if res.StatusCode != 200{
+		t.Fatalf("Error on getAll")
+	}
+}
