@@ -15,7 +15,7 @@ var (
 )
 
 func main() {
-	endpoints := []string{"127.0.0.1:2379"} // ETCD server endpoints
+	endpoints := []string{"127.0.0.1:4243", "127.0.0.1:4244", "127.0.0.1:4245"} // ETCD server endpoints
 	duration := 5 * time.Second
 
 	// Create client for etcd
@@ -37,9 +37,8 @@ func main() {
 
 	// Enable CORS middleware
 	handler := enableCORS(http.DefaultServeMux)
-
-	fmt.Println("Server listening on http://127.0.0.1:8080")
-	http.ListenAndServe("127.0.0.1:8080", handler)
+	fmt.Println("Server listening on http://127.0.0.1:4242")
+	fmt.Println(http.ListenAndServe("127.0.0.1:4242", handler))
 }
 
 // Middleware function to enable CORS
