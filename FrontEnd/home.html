@@ -61,19 +61,19 @@
     </div>
     <form id="get-form" onsubmit="getValue(event)">
         <label for="key" class="form-label">Enter Key:</label>
-        <input type="text" id="getKey" required>
+        <input type="text" id="getKey" name="key" required>
         <button type="submit">Get</button>
     </form>
     <form id="del-form" onsubmit="deleteValue(event)">
         <label for="key" class="form-label">Enter Key to Delete:</label>
-        <input type="text" id="delKey" required>
+        <input type="text" id="delKey" name="key" required>
         <button type="submit">Delete</button>
     </form>
     <form id="set-form">
         <label for="key" class="form-label">Enter Key:</label>
-        <input type="text" id="setKey" required>
+        <input type="text" id="setKey" name="key" required>
         <label for="value" class="form-label">Enter Value:</label>
-        <input type="text" id="setValue" required>
+        <input type="text" id="setValue" name="value" required>
         <button type="submit">Set</button>
     </form>
     <pre id="response"></pre>
@@ -102,7 +102,7 @@
                 setForm.reset(); // Reset form fields on each click
                 responseEl.textContent = ''; // Clear previous response
                 // Make GET request to get all key-value pairs
-                fetch('http://localhost:8080/getAll')
+                fetch('http://localhost:4242/getAll')
                     .then(response => response.json())
                     .then(data => {
                         if (Array.isArray(data)) {
@@ -127,7 +127,7 @@
             event.preventDefault();
             const key = document.getElementById('delKey').value;
             try {
-                const response = await fetch(`http://localhost:8080/delete?key=${key}`, {
+                const response = await fetch(`http://localhost:4242/delete?key=${key}`, {
                     method: 'DELETE'
                 });
                 if (response.ok) {
@@ -144,9 +144,9 @@
             event.preventDefault();
             const key = document.getElementById('getKey').value;
             try {
-                const response = await fetch(`http://localhost:8080/get?key=${key}`);
+                const response = await fetch(`http://localhost:4242/get?key=${key}`);
                 const data = await response.json();
-                responseEl.textContent = JSON.stringify(data, null, 2);
+                responseEl.textContent = data.value
             } catch (error) {
                 responseEl.textContent = `Error: ${error.message}`;
             }
@@ -160,7 +160,7 @@
                 value: document.getElementById('setValue').value
             };
 
-            fetch('http://localhost:8080/set', {
+            fetch('http://localhost:4242/set', {
                 headers: {'Content-Type': 'application/json'},
                 method: 'POST',
                 body: JSON.stringify(formData)

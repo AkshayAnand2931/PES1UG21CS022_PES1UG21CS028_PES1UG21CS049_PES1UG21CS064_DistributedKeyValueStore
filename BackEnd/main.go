@@ -123,6 +123,7 @@ func setHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Set Successfully"))
 }
 
 func getHandler(w http.ResponseWriter, r *http.Request) {
@@ -155,7 +156,7 @@ func getAllHandler(w http.ResponseWriter, r *http.Request) {
         http.Error(w, "Only GET is allowed", http.StatusMethodNotAllowed)
         return
     }
-	
+
 	ctx := context.TODO()
 	resp, err := client.Get(ctx, "", clientv3.WithPrefix())
 
