@@ -13,3 +13,5 @@ rm -f /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz
 sudo /tmp/etcd-download-test/etcd --config-file etcd1.conf.yml > log1.log &
 sudo /tmp/etcd-download-test/etcd --config-file etcd2.conf.yml > log2.log &
 sudo /tmp/etcd-download-test/etcd --config-file etcd3.conf.yml > log3.log &
+
+sudo snap install go --classic

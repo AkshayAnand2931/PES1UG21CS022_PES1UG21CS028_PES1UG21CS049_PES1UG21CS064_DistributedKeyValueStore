@@ -104,7 +104,6 @@ func setHandler(w http.ResponseWriter, r *http.Request) {
         http.Error(w, "Only POST is allowed", http.StatusMethodNotAllowed)
         return
     }
-
 	var keyvalue KeyValue
 	d := json.NewDecoder(r.Body)
 	d.DisallowUnknownFields()
@@ -113,18 +112,40 @@ func setHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Set key-value pair
+
+	res := ""
+	key := keyvalue.Key
+
 	ctx := context.TODO()
-	_, err := client.Put(ctx, keyvalue.Key, keyvalue.Value)
+	resp, err := client.Get(ctx, key)
+
+	if err != nil {
+		http.Error(w, "Failed to get value for key from etcd", http.StatusInternalServerError)
+		return
+	}
+	fmt.Println(resp.Kvs)
+	if len(resp.Kvs) > 0 {
+		res += "Key already there, Updating now\n"
+	} else{
+		res += "Key not there, creating new\n"
+	}
+
+	
+	// Set key-value pair
+	ctx = context.TODO()
+	_, err = client.Put(ctx, keyvalue.Key, keyvalue.Value)
 
 	if err != nil {
 		http.Error(w, "Failed to set key-value pair in etcd", http.StatusInternalServerError)
 		return
 	}
+	res += "Successfully Created"
 
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Set Successfully"))
+	w.Write([]byte(res))
 }
+
+
 
 func getHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
